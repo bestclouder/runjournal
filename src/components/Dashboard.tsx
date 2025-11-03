@@ -1,124 +1,141 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useRunLogs } from '../hooks/useRunLogs';
-import { Calendar, Clock, MapPin, Edit2, Trash2 } from 'lucide-react';
-import { EditRunModal } from './EditRunModal';
-import type { RunLog } from '../types/database';
+import AddRunForm from './AddRunForm';
+import RunCard from './RunCard';
+import StatsCard from './StatsCard';
+import EditRunModal from './EditRunModal';
+import { Plus, TrendingUp, Clock, Zap, Activity } from 'lucide-react';
+import type { RunLog } from '../hooks/useRunLogs';
 
-export function Dashboard() {
+export default function Dashboard() {
   const { user } = useAuth();
-  const { runs, loading, deleteRun } = useRunLogs(user?.id);
+  const { runs, loading, addRun, updateRun, deleteRun } = useRunLogs(user?.id);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [editingRun, setEditingRun] = useState<RunLog | null>(null);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const totalDistance = runs.reduce((sum, run) => sum + run.distance_km, 0);
+  const totalDuration = runs.reduce((sum, run) => sum + run.duration_min, 0);
+  const avgEffort = runs.length > 0 
+    ? runs.reduce((sum, run) => sum + run.effort, 0) / runs.length 
+    : 0;
+
+  const handleAddRun = async (runData: any) => {
+    try {
+      await addRun(runData);
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Failed to add run:', error);
+    }
   };
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  const handleUpdateRun = async (id: string, updates: Partial<RunLog>) => {
+    try {
+      await updateRun(id, updates);
+      setEditingRun(null);
+    } catch (error) {
+      console.error('Failed to update run:', error);
+    }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteRun = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this run?')) {
-      await deleteRun(id);
+      try {
+        await deleteRun(id);
+      } catch (error) {
+        console.error('Failed to delete run:', error);
+      }
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading your runs...</div>
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Your Running History</h1>
-          <p className="text-gray-600 mt-2">Track your progress and stay motivated!</p>
-        </div>
-
-        {runs.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-700 mb-2">No runs yet</h2>
-            <p className="text-gray-500">Start logging your runs to see them here!</p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {runs.map((run) => (
-              <div
-                key={run.id}
-                className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden"
-              >
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
-                  <div className="flex items-center justify-between text-white">
-                    <div className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-2" />
-                      <span className="font-semibold">{formatDate(run.date)}</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setEditingRun(run)}
-                        className="p-2 hover:bg-white/20 rounded-lg transition"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(run.id)}
-                        className="p-2 hover:bg-white/20 rounded-lg transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <MapPin className="w-5 h-5 text-blue-600 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-500">Distance</p>
-                        <p className="text-2xl font-bold text-gray-900">{run.distance} km</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center">
-                      <Clock className="w-5 h-5 text-purple-600 mr-3" />
-                      <div>
-                        <p className="text-sm text-gray-500">Duration</p>
-                        <p className="text-xl font-semibold text-gray-900">
-                          {formatDuration(run.duration)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {run.notes && (
-                      <div className="pt-4 border-t border-gray-200">
-                        <p className="text-sm text-gray-500 mb-1">Notes</p>
-                        <p className="text-gray-700">{run.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Your Running Journey</h2>
+        <p className="text-gray-600">Track your progress and stay motivated</p>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatsCard
+          icon={<TrendingUp className="text-indigo-600" size={24} />}
+          label="Total Distance"
+          value={`${totalDistance.toFixed(1)} km`}
+          bgColor="bg-indigo-50"
+        />
+        <StatsCard
+          icon={<Clock className="text-green-600" size={24} />}
+          label="Total Time"
+          value={`${Math.floor(totalDuration / 60)}h ${Math.floor(totalDuration % 60)}m`}
+          bgColor="bg-green-50"
+        />
+        <StatsCard
+          icon={<Zap className="text-orange-600" size={24} />}
+          label="Avg Effort"
+          value={`${avgEffort.toFixed(1)}/10`}
+          bgColor="bg-orange-50"
+        />
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-2xl font-bold text-gray-900">Recent Runs</h3>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          <Plus size={20} />
+          Add Run
+        </button>
+      </div>
+
+      {showAddForm && (
+        <div className="mb-6">
+          <AddRunForm
+            onSubmit={handleAddRun}
+            onCancel={() => setShowAddForm(false)}
+          />
+        </div>
+      )}
+
+      {runs.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
+          <Activity className="mx-auto text-gray-400 mb-4" size={48} />
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No runs yet</h3>
+          <p className="text-gray-600 mb-4">Start tracking your runs to see your progress</p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Plus size={20} />
+            Add Your First Run
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {runs.map((run) => (
+            <RunCard
+              key={run.id}
+              run={run}
+              onEdit={() => setEditingRun(run)}
+              onDelete={() => handleDeleteRun(run.id)}
+            />
+          ))}
+        </div>
+      )}
+
       {editingRun && (
-        <EditRunModal run={editingRun} onClose={() => setEditingRun(null)} />
+        <EditRunModal
+          run={editingRun}
+          onSave={(updates) => handleUpdateRun(editingRun.id, updates)}
+          onClose={() => setEditingRun(null)}
+        />
       )}
     </div>
   );

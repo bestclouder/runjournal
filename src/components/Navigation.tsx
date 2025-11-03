@@ -1,54 +1,29 @@
 import React from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { Activity, Plus, LayoutDashboard, LogOut } from 'lucide-react';
+import { LogOut, Activity } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
 
 interface NavigationProps {
-  currentPage: 'dashboard' | 'add-run';
-  onNavigate: (page: 'dashboard' | 'add-run') => void;
+  user: User;
+  onSignOut: () => void;
 }
 
-export function Navigation({ currentPage, onNavigate }: NavigationProps) {
-  const { signOut } = useAuth();
-
+export default function Navigation({ user, onSignOut }: NavigationProps) {
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <Activity className="w-8 h-8 text-blue-600 mr-2" />
-            <span className="text-xl font-bold text-gray-800">Running Journal</span>
+          <div className="flex items-center gap-2">
+            <Activity className="text-indigo-600" size={28} />
+            <h1 className="text-xl font-bold text-gray-900">Run Tracker</h1>
           </div>
-
-          <div className="flex items-center space-x-4">
+          
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600">{user.email}</span>
             <button
-              onClick={() => onNavigate('dashboard')}
-              className={`flex items-center px-4 py-2 rounded-lg transition ${
-                currentPage === 'dashboard'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
+              onClick={onSignOut}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <LayoutDashboard className="w-5 h-5 mr-2" />
-              Dashboard
-            </button>
-
-            <button
-              onClick={() => onNavigate('add-run')}
-              className={`flex items-center px-4 py-2 rounded-lg transition ${
-                currentPage === 'add-run'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Add Run
-            </button>
-
-            <button
-              onClick={signOut}
-              className="flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
+              <LogOut size={18} />
               Sign Out
             </button>
           </div>

@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { RunLog } from '../types/database';
+
+export interface RunLog {
+  id: string;
+  user_id: string;
+  date: string;
+  distance_km: number;
+  duration_min: number;
+  effort: number;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export function useRunLogs(userId: string | undefined) {
   const [runs, setRuns] = useState<RunLog[]>([]);
@@ -31,28 +42,36 @@ export function useRunLogs(userId: string | undefined) {
   const addRun = async (run: Omit<RunLog, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!userId) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('run_logs')
-      .insert([{ ...run, user_id: userId }]);
+      .insert([{ ...run, user_id: userId }])
+      .select()
+      .single();
 
     if (error) {
       console.error('Error adding run:', error);
       throw error;
     }
-    await fetchRuns();
+
+    setRuns([data, ...runs]);
+    return data;
   };
 
   const updateRun = async (id: string, updates: Partial<RunLog>) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('run_logs')
-      .update(updates)
-      .eq('id', id);
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
 
     if (error) {
       console.error('Error updating run:', error);
       throw error;
     }
-    await fetchRuns();
+
+    setRuns(runs.map(run => run.id === id ? data : run));
+    return data;
   };
 
   const deleteRun = async (id: string) => {
@@ -65,7 +84,8 @@ export function useRunLogs(userId: string | undefined) {
       console.error('Error deleting run:', error);
       throw error;
     }
-    await fetchRuns();
+
+    setRuns(runs.filter(run => run.id !== id));
   };
 
   return { runs, loading, addRun, updateRun, deleteRun, refetch: fetchRuns };
